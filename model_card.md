@@ -1,111 +1,130 @@
 # 🎧 Model Card: Music Recommender Simulation
 
-## 1. Model Name  
+## 1. Model Name
 
-Give your model a short, descriptive name.  
-Example: **VibeFinder 1.0**  
-
----
-
-## 2. Intended Use  
-
-Describe what your recommender is designed to do and who it is for. 
-
-Prompts:  
-
-- What kind of recommendations does it generate  
-- What assumptions does it make about the user  
-- Is this for real users or classroom exploration  
+**VibeMatch 1.0** — a small, rule-based music recommender.
 
 ---
 
-## 3. How the Model Works  
+## 2. Intended Use
 
-Explain your scoring approach in simple language.  
+VibeMatch recommends songs from a fixed catalog that best match a user's stated
+taste. Given a profile (favorite genre, favorite mood, target energy level),
+it ranks the catalog and returns the top few songs, each with a short
+plain-language explanation of *why* it was chosen.
 
-Prompts:  
-
-- What features of each song are used (genre, energy, mood, etc.)  
-- What user preferences are considered  
-- How does the model turn those into a score  
-- What changes did you make from the starter logic  
-
-Avoid code here. Pretend you are explaining the idea to a friend who does not program.
-
----
-
-## 4. Data  
-
-Describe the dataset the model uses.  
-
-Prompts:  
-
-- How many songs are in the catalog  
-- What genres or moods are represented  
-- Did you add or remove data  
-- Are there parts of musical taste missing in the dataset  
+- **Recommendations:** an ordered top-K list of songs with a match score and reasons.
+- **Assumptions:** the user can describe their taste as a genre, a mood, and an
+  energy preference, and that those three signals are a reasonable proxy for what
+  they want to hear right now.
+- **Audience:** this is a **classroom / learning project**, not a production system.
+  It exists to show how data + a scoring rule turn into ranked recommendations.
 
 ---
 
-## 5. Strengths  
+## 3. How the Model Works
 
-Where does your system seem to work well  
+Imagine giving each song a report card. For every thing you care about, the song
+earns points:
 
-Prompts:  
+- If the song's **genre** is your favorite, it gets **2 points** — genre is the
+  strongest signal of taste, so it's weighted highest.
+- If the song's **mood** matches yours, it gets **1.5 points**.
+- For **energy**, the song earns up to **1 point** depending on how close its
+  energy is to your target. A perfect match earns the full point; the further
+  apart they are, the less it earns.
+- (In the object-oriented version) if you say you **like acoustic** music, songs
+  also get a bonus equal to how acoustic they are.
 
-- User types for which it gives reasonable results  
-- Any patterns you think your scoring captures correctly  
-- Cases where the recommendations matched your intuition  
+Every song is scored this way, then sorted from highest to lowest, and the top
+few are shown. Alongside each pick, the system lists the reasons it earned points
+("matches your pop taste, fits your happy mood…") so the recommendation is never
+a black box.
 
----
-
-## 6. Limitations and Bias 
-
-Where the system struggles or behaves unfairly. 
-
-Prompts:  
-
-- Features it does not consider  
-- Genres or moods that are underrepresented  
-- Cases where the system overfits to one preference  
-- Ways the scoring might unintentionally favor some users  
-
----
-
-## 7. Evaluation  
-
-How you checked whether the recommender behaved as expected. 
-
-Prompts:  
-
-- Which user profiles you tested  
-- What you looked for in the recommendations  
-- What surprised you  
-- Any simple tests or comparisons you ran  
-
-No need for numeric metrics unless you created some.
+**Changes from the starter logic:** the starter simply returned the first few
+songs unsorted. I added the weighted scoring rule, real CSV loading, human-readable
+explanations, and a fallback message for songs that match nothing ("a fresh pick
+outside your usual preferences").
 
 ---
 
-## 8. Future Work  
+## 4. Data
 
-Ideas for how you would improve the model next.  
+The catalog is a small CSV, `data/songs.csv`, with **10 songs**.
 
-Prompts:  
-
-- Additional features or preferences  
-- Better ways to explain recommendations  
-- Improving diversity among the top results  
-- Handling more complex user tastes  
+- **Columns:** id, title, artist, genre, mood, energy, tempo_bpm, valence,
+  danceability, acousticness.
+- **Genres represented:** pop, indie pop, lofi, rock, ambient, jazz, synthwave.
+- **Moods represented:** happy, chill, intense, relaxed, moody, focused.
+- I did not add or remove songs — the dataset is the one provided.
+- **Missing from the data:** language/lyrics, release year, artist popularity,
+  and cultural context. Whole families of music (hip-hop, classical, country,
+  most non-Western genres) are absent, so the catalog is narrow.
 
 ---
 
-## 9. Personal Reflection  
+## 5. Strengths
 
-A few sentences about your experience.  
+- Works well for users whose taste lines up with a **well-represented genre**,
+  like pop or lofi, where there are several candidates to rank.
+- The scoring captures the intuitive idea that an **exact genre + mood + energy**
+  match should clearly beat a partial one — the `pop/happy/0.8` profile puts
+  *Sunrise City* (a pop, happy, 0.82-energy track) on top by a wide margin.
+- Every recommendation comes with a **reason**, which makes the results easy to
+  sanity-check and matches my intuition when I read them.
 
-Prompts:  
+---
 
-- What you learned about recommender systems  
-- Something unexpected or interesting you discovered  
-- How this changed the way you think about music recommendation apps  
+## 6. Limitations and Bias
+
+- **Ignores most features:** tempo, valence, and danceability are in the data but
+  don't affect the score. Two very different songs can tie.
+- **Underrepresented tastes:** a user who loves a genre with only one song (e.g.
+  jazz, rock) gets almost no real choice, and genres missing from the catalog
+  can never be recommended at all.
+- **Overfits to genre:** because genre is worth the most points, a strong genre
+  match can dominate even when the mood is completely wrong.
+- **Popularity blind spot:** the system has no notion of what's popular or new,
+  so it can't surface trending music the way real apps do.
+- **Cold start:** it assumes the user already knows their genre/mood/energy; it
+  can't help someone who can't describe their taste.
+
+---
+
+## 7. Evaluation
+
+- **Profiles tested:** the default `pop / happy / energy=0.8`, plus mental checks
+  for `lofi / chill / low-energy` type users.
+- **What I looked for:** does the most obvious match land at #1, do the scores
+  fall off in a sensible order, and do the printed reasons actually explain the
+  ranking.
+- **Automated tests:** the OOP version is checked by `tests/test_recommender.py`
+  (2/2 passing) — one test confirms the pop/happy song ranks first, the other
+  confirms explanations are non-empty strings.
+- **What surprised me:** how much the genre weight (2.0) dominates. Songs that
+  matched only on energy scored under 1.0, so a single big-weight feature can
+  effectively decide the whole ranking.
+
+---
+
+## 8. Future Work
+
+- Use more of the data — factor in tempo, valence, and danceability.
+- Add a **popularity / trending boost** so fresh hits can surface, like real apps.
+- Add a small **exploration factor** so the top-K isn't always the same safe picks,
+  improving diversity.
+- Support **multiple favorite genres** and softer matching (e.g. "pop" is close to
+  "indie pop") instead of exact-match only.
+- Richer explanations that mention *how strong* each reason was.
+
+---
+
+## 9. Personal Reflection
+
+I learned that a recommender is really just a scoring rule applied consistently
+across a catalog — the "intelligence" lives in which features you weight and by
+how much. The most interesting discovery was how a single heavily-weighted feature
+(genre) can quietly dominate every result, which is exactly where bias sneaks in:
+if the catalog or the weights favor one kind of music, users with other tastes get
+worse recommendations without anyone intending it. It made me realize the polished
+apps I use are making these same weighting choices on a massive scale.
