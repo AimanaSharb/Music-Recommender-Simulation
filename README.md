@@ -100,13 +100,19 @@ Top 5 recommendations:
 
 ## Experiments You Tried
 
-- **Lowering the genre weight (2.0 → 0.5):** the ranking flattened out. *Sunrise
-  City* no longer dominated, and energy-only matches climbed the list — showing
-  how much a single big weight controls the results.
+- **Lowering the genre weight (2.0 → 0.5)** for the `pop/happy` profile caused a
+  real rank swap at positions 2 and 3:
+  - At weight **2.0**: #2 was *Gym Hero* (2.87, pop but *intense* mood), #3 was
+    *Rooftop Lights* (2.46, *indie pop* but *happy* mood).
+  - At weight **0.5**: *Rooftop Lights* rose to **#2** while *Gym Hero* dropped to
+    **#3** (1.37). *Sunrise City* stayed #1 both times because it matches all three.
+  - **Takeaway:** when genre counted less, a song matching on *mood + energy* beat
+    a song matching only on *genre + energy* — showing the genre weight was the
+    single factor deciding the middle of the ranking.
 - **Different user types:** a `pop/happy` user gets a clear, confident top pick,
   but a `jazz/relaxed` user has only one real candidate in the catalog, so the
-  rest of the list is filled with weak energy-only matches.
-- **Energy sensitivity:** because energy only contributes up to 1 point, two songs
+  rest of the list falls back to weak energy-only matches.
+- **Energy sensitivity:** because energy contributes at most 1 point, two songs
   with the same genre but very different energy still rank close together —
   suggesting energy could use more weight.
 
